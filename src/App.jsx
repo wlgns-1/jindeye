@@ -16,7 +16,7 @@ const emptyForm = {
   healthPerLevel: 5,
 };
 
-const equipmentTypes = ["검", "도끼", "활", "방어구", "투구", "기타"];
+const equipmentTypes = ["방어구"];
 
 function calculateStats(item) {
   return {
