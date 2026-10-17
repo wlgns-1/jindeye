@@ -3,7 +3,8 @@ name: Deploy Jindeye
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -49,14 +50,3 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-        
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-                # Trigger deployment update
-
-                      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
-        # Trigger deployment update
