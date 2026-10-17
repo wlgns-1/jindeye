@@ -6,30 +6,68 @@ const STORAGE_KEY = "jindeye-equipment-v1";
 
 const emptyForm = {
   name: "",
-  type: "검",
+  type: "투구",
   level: 0,
-  attack: 10,
-  defense: 0,
-  health: 0,
-  attackPerLevel: 2,
-  defensePerLevel: 1,
-  healthPerLevel: 5,
 };
 
-const equipmentTypes = ["방어구"];
+const equipmentTypes = ["투구", "갑옷", "허리띠", "신발"];
 
+// 투구 경험치와 허리띠 드랍률
+// +10 = 2.2%, +12 = 2.6%, +15 = 3.2%
+function calculatePercentBonus(level) {
+  const lv = Math.max(0, Number(level) || 0);
+  return (lv + 1) * 0.2;
+}
+
+// 장비 종류별 능력치 계산
 function calculateStats(item) {
-  return {
-    attack:
-      Number(item.attack) +
-      Number(item.level) * Number(item.attackPerLevel),
-    defense:
-      Number(item.defense) +
-      Number(item.level) * Number(item.defensePerLevel),
-    health:
-      Number(item.health) +
-      Number(item.level) * Number(item.healthPerLevel),
-  };
+  const level = Math.max(0, Number(item.level) || 0);
+
+  switch (item.type) {
+    case "투구":
+      return {
+        label: "경험치 획득량",
+        value: calculatePercentBonus(level),
+        unit: "%",
+        icon: "✨",
+      };
+
+    case "갑옷":
+      return {
+        label: "공격력",
+        value: level + 1,
+        unit: "",
+        icon: "⚔️",
+      };
+
+    case "허리띠":
+      return {
+        label: "드랍률",
+        value: calculatePercentBonus(level),
+        unit: "%",
+        icon: "🍀",
+      };
+
+    case "신발":
+      return {
+        label: "공격력",
+    value: (level + 1) * 0.3,
+        unit: "%",
+        icon: "👢",
+      };
+
+    default:
+      return {
+        label: "능력치",
+        value: 0,
+        unit: "",
+        icon: "✨",
+      };
+  }
+}
+
+function formatStat(value, unit) {
+  return unit === "%" ? value.toFixed(1) : String(value);
 }
 
 function loadEquipment() {
@@ -66,16 +104,10 @@ function App() {
     }
 
     const item = {
-      ...form,
       id: crypto.randomUUID(),
       name: form.name.trim(),
-      level: Number(form.level),
-      attack: Number(form.attack),
-      defense: Number(form.defense),
-      health: Number(form.health),
-      attackPerLevel: Number(form.attackPerLevel),
-      defensePerLevel: Number(form.defensePerLevel),
-      healthPerLevel: Number(form.healthPerLevel),
+      type: form.type,
+      level: Math.max(0, Number(form.level) || 0),
     };
 
     setEquipment((current) => [item, ...current]);
@@ -92,38 +124,7 @@ function App() {
     );
   };
 
-  const total = equipment.reduce(
-    (sum, item) => {
-      const stats = calculateStats(item);
-      sum.attack += stats.attack;
-      sum.defense += stats.defense;
-      sum.health += stats.health;
-      return sum;
-    },
-    { attack: 0, defense: 0, health: 0 }
-  );
-
-  const preview = calculateStats({
-    ...form,
-    level: Number(form.level) || 0,
-  });
-
-  const numberField = (label, field, help) => (
-    <label className="field" key={field}>
-      <span>{label}</span>
-      <input
-        type="number"
-        min="0"
-        step="1"
-        value={form[field]}
-        onChange={(event) =>
-          updateForm(field, event.target.value)
-        }
-        required
-      />
-      {help && <small>{help}</small>}
-    </label>
-  );
+  const previewStats = calculateStats(form);
 
   return (
     <main className="app">
@@ -143,26 +144,17 @@ function App() {
           <span>진열하고 강화하세요.</span>
         </h1>
         <p className="hero-description">
-          장비를 등록하고 강화 수치에 따른 전투 능력치를 확인하세요.
+          장비를 등록하고 강화 단계에 따른 능력치를 확인하세요.
         </p>
       </section>
 
       <section className="summary-grid">
         <div className="summary-card">
           <span>등록 장비</span>
-          <strong>{equipment.length}<small> 개</small></strong>
-        </div>
-        <div className="summary-card">
-          <span>총 공격력</span>
-          <strong>{total.attack.toLocaleString()}</strong>
-        </div>
-        <div className="summary-card">
-          <span>총 방어력</span>
-          <strong>{total.defense.toLocaleString()}</strong>
-        </div>
-        <div className="summary-card">
-          <span>총 추가 체력</span>
-          <strong>{total.health.toLocaleString()}</strong>
+          <strong>
+            {equipment.length}
+            <small> 개</small>
+          </strong>
         </div>
       </section>
 
@@ -181,7 +173,7 @@ function App() {
               <span>장비 이름</span>
               <input
                 type="text"
-                placeholder="예: 전설의 다이아몬드 검"
+                placeholder="예: 전설의 다이아몬드 투구"
                 value={form.name}
                 onChange={(event) =>
                   updateForm("name", event.target.value)
@@ -211,38 +203,43 @@ function App() {
 
             <h3 className="subheading">강화 설정</h3>
 
-            {numberField("강화 단계 (+)", "level")}
+            <label className="field">
+              <span>강화 단계 (+)</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.level}
+                onChange={(event) =>
+                  updateForm("level", event.target.value)
+                }
+                required
+              />
+            </label>
+
             <p className="field-note">
-              예: 5를 입력하면 5강 장비로 등록됩니다.
+              {form.type === "투구" &&
+                "경험치 획득량: 강화 단계에 따라 0.2%씩 증가합니다."}
+              {form.type === "갑옷" &&
+                "공격력 증가량은 강화 단계 + 1입니다."}
+              {form.type === "허리띠" &&
+                "드랍률: 강화 단계에 따라 0.2%씩 증가합니다."}
+              {form.type === "신발" &&
+                "공격력 증가량은 강화 단계당 0.3%입니다."}
             </p>
-
-            <div className="form-divider" />
-
-            <h3 className="subheading">기본 능력치</h3>
-            <div className="input-grid">
-              {numberField("공격력", "attack")}
-              {numberField("방어력", "defense")}
-              {numberField("추가 체력", "health")}
-            </div>
-
-            <div className="form-divider" />
-
-            <h3 className="subheading">강화 단계별 증가량</h3>
-            <p className="field-note">
-              강화 1단계마다 증가하는 능력치를 직접 설정하세요.
-            </p>
-            <div className="input-grid">
-              {numberField("공격력 증가", "attackPerLevel")}
-              {numberField("방어력 증가", "defensePerLevel")}
-              {numberField("체력 증가", "healthPerLevel")}
-            </div>
 
             <div className="preview-box">
               <span>최종 능력치 미리보기</span>
               <div className="preview-stats">
-                <span>⚔ 공격력 <b>{preview.attack}</b></span>
-                <span>🛡 방어력 <b>{preview.defense}</b></span>
-                <span>♥ 추가 체력 <b>{preview.health}</b></span>
+                <span>
+                  {previewStats.icon} {previewStats.label}{" "}
+                  <b>
+                    +{formatStat(
+                      previewStats.value,
+                      previewStats.unit
+                    )}{previewStats.unit}
+                  </b>
+                </span>
               </div>
             </div>
 
@@ -277,9 +274,14 @@ function App() {
                 const stats = calculateStats(item);
 
                 return (
-                  <article className="equipment-card" key={item.id}>
+                  <article
+                    className="equipment-card"
+                    key={item.id}
+                  >
                     <div className="equipment-card-top">
-                      <span className="type-badge">{item.type}</span>
+                      <span className="type-badge">
+                        {item.type}
+                      </span>
                       <button
                         className="delete-button"
                         type="button"
@@ -292,13 +294,7 @@ function App() {
                     </div>
 
                     <div className="equipment-art">
-                      <span>
-                        {item.type === "검" ? "⚔" :
-                         item.type === "도끼" ? "🪓" :
-                         item.type === "활" ? "➶" :
-                         item.type === "방어구" ? "🛡" :
-                         item.type === "투구" ? "⛑" : "◆"}
-                      </span>
+                      <span>{stats.icon}</span>
                     </div>
 
                     <div className="equipment-info">
@@ -310,16 +306,13 @@ function App() {
 
                     <div className="equipment-stats">
                       <div>
-                        <span>⚔ 공격력</span>
-                        <strong>{stats.attack}</strong>
-                      </div>
-                      <div>
-                        <span>🛡 방어력</span>
-                        <strong>{stats.defense}</strong>
-                      </div>
-                      <div>
-                        <span>♥ 추가 체력</span>
-                        <strong>{stats.health}</strong>
+                        <span>
+                          {stats.icon} {stats.label}
+                        </span>
+                        <strong>
+                          +{formatStat(stats.value, stats.unit)}
+                          {stats.unit}
+                        </strong>
                       </div>
                     </div>
 
