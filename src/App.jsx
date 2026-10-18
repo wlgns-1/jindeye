@@ -518,26 +518,28 @@ export default function App() {
                     </select>
                     {editingId === null && <small className="field-help">이미 등록된 장비 종류는 선택 목록에 표시되지 않습니다.</small>}
                   </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="equipment-base-level">장비 레벨</label>
-                      <select id="equipment-base-level" value={form.baseLevel} onChange={(event) => {
-                        const value = Number(event.target.value);
-                        updateForm("baseLevel", value);
-                        if (value === 0 || value === 20) updateForm("tier", "5T");
-                      }}>
-                        {equipmentLevels.map((level) => <option key={level} value={level}>{level}레벨</option>)}
-                      </select>
-                    </div>
-                    {Number(form.baseLevel) !== 0 && Number(form.baseLevel) !== 20 && (
+                  {editingId !== null && (
+                    <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="equipment-tier">등급</label>
-                        <select id="equipment-tier" value={form.tier} onChange={(event) => updateForm("tier", event.target.value)}>
-                          {tiers.map((tier) => <option key={tier} value={tier}>{tier.replace("T", "티어")}</option>)}
+                        <label htmlFor="equipment-base-level">장비 레벨</label>
+                        <select id="equipment-base-level" value={form.baseLevel} onChange={(event) => {
+                          const value = Number(event.target.value);
+                          updateForm("baseLevel", value);
+                          if (value === 0 || value === 20) updateForm("tier", "5T");
+                        }}>
+                          {equipmentLevels.map((level) => <option key={level} value={level}>{level}레벨</option>)}
                         </select>
                       </div>
-                    )}
-                  </div>
+                      {Number(form.baseLevel) !== 0 && Number(form.baseLevel) !== 20 && (
+                        <div className="form-group">
+                          <label htmlFor="equipment-tier">등급</label>
+                          <select id="equipment-tier" value={form.tier} onChange={(event) => updateForm("tier", event.target.value)}>
+                            {tiers.map((tier) => <option key={tier} value={tier}>{tier.replace("T", "티어")}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="form-group">
                     <label>장비 이름</label>
                     <div className="name-preview">{equipmentName}</div>
