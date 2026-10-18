@@ -464,18 +464,10 @@ export default function App() {
                 <div className="selected-equipment-heading">
                   <div>
                     <span className="equipment-type">{selectedEquipment.type}</span>
-                    <h3>{createEquipmentName(selectedEquipment.type, selectedEquipment.baseLevel ?? 50, selectedEquipment.tier || "5T")}</h3>
+                    <h3>{`${selectedGroup.name}${selectedEquipment.type}`}</h3>
                     <p>{selectedGroup.baseLevel}레벨{selectedGroup.tier ? ` · ${selectedGroup.tier.replace("T", "티어")}` : ""}</p>
                   </div>
                   <strong className="enhancement-level">+{clampLevel(selectedEquipment.level)}강</strong>
-                </div>
-                <div className="effect-box">
-                  <h3>개별 장비 효과</h3>
-                  <p>{selectedStats.label} <strong>+{formatStat(selectedStats.value)}{selectedStats.unit}</strong></p>
-                </div>
-                <div className="effect-box set-effect-box">
-                  <h3>세트 효과</h3>
-                  <p>세트 효과 계산 규칙을 설정하면 이곳에 표시됩니다.</p>
                 </div>
                 <div className="equipment-actions detail-actions">
                   <button type="button" className="edit-button" onClick={() => startEditingEquipment(selectedEquipment)}>수정</button>
