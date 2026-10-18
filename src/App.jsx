@@ -5,10 +5,25 @@ import "./App.css";
 const STORAGE_KEY = "jindeye-equipment-v1";
 
 const equipmentTypes = ["투구", "갑옷", "허리띠", "신발"];
-const equipmentLevels = [50, 80, 110, 150, 180];
+const equipmentLevels = [0, 20, 50, 80, 110, 150, 180];
 const tiers = ["5T", "4T", "3T", "2T", "1T"];
 
 const equipmentNames = {
+  0: {
+    "5T": "가죽",
+    "4T": "가죽",
+    "3T": "가죽",
+    "2T": "가죽",
+    "1T": "가죽",
+  },
+  20: {
+    "5T": "장인",
+    "4T": "장인",
+    "3T": "장인",
+    "2T": "장인",
+    "1T": "장인",
+  },
+
   50: {
     "5T": "동군",
     "4T": "투해",
