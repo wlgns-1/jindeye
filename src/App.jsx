@@ -165,6 +165,8 @@ export default function App() {
   const [equipment, setEquipment] = useState(loadEquipment);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  // 그룹별 접기/펼치기 상태를 저장합니다. 기본값은 펼쳐진 상태입니다.
+  const [collapsedGroups, setCollapsedGroups] = useState({});
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(equipment));
@@ -251,6 +253,32 @@ export default function App() {
     }
   }
 
+  // 같은 레벨과 등급의 장비를 한 그룹으로 묶습니다.
+  // 0레벨과 20레벨은 등급이 없으므로 레벨만으로 묶습니다.
+  const groupedEquipment = equipment.reduce((groups, item) => {
+    const baseLevel = item.baseLevel == null ? 50 : Number(item.baseLevel);
+    const hasTier = baseLevel !== 0 && baseLevel !== 20;
+    const tier = item.tier || "5T";
+    const groupKey = hasTier ? `${baseLevel}-${tier}` : `${baseLevel}`;
+
+    if (!groups[groupKey]) {
+      groups[groupKey] = {
+        baseLevel,
+        tier: hasTier ? tier : null,
+        items: [],
+      };
+    }
+
+    groups[groupKey].items.push(item);
+    return groups;
+  }, {});
+
+  const sortedGroups = Object.values(groupedEquipment).sort((a, b) => {
+    if (a.baseLevel !== b.baseLevel) return a.baseLevel - b.baseLevel;
+    const tierOrder = tiers.indexOf(a.tier) - tiers.indexOf(b.tier);
+    return tierOrder;
+  });
+
   return (
     <main className="app">
       <header className="topbar">
@@ -336,10 +364,10 @@ export default function App() {
                       }
                     >
                       {tiers.map((tier) => (
-  <option key={tier} value={tier}>
-    {tier.replace("T", "티어")}
-  </option>
-))}
+                        <option key={tier} value={tier}>
+                          {tier.replace("T", "티어")}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 )}
@@ -420,71 +448,109 @@ export default function App() {
               <span>왼쪽에서 장비를 등록해 보세요.</span>
             </div>
           ) : (
-            <div className="equipment-grid">
-              {equipment.map((item) => {
-                const stats = calculateStats(item);
-
-                const name = createEquipmentName(
-                  item.type,
-                  item.baseLevel == null ? 50 : Number(item.baseLevel),
-                  item.tier || "5T"
-                );
-
-                return (
-                  <article
-                    className="equipment-card"
-                    key={item.id}
+            <div className="equipment-groups">
+              {sortedGroups.map((group) => (
+                <section
+                  className="equipment-group"
+                  key={`${group.baseLevel}-${group.tier || "no-tier"}`}
+                >
+                  <button
+                    type="button"
+                    className="equipment-group-title"
+                    aria-expanded={
+                      !collapsedGroups[`${group.baseLevel}-${group.tier || "no-tier"}`]
+                    }
+                    onClick={() => {
+                      const key = `${group.baseLevel}-${group.tier || "no-tier"}`;
+                      setCollapsedGroups((current) => ({
+                        ...current,
+                        [key]: !current[key],
+                      }));
+                    }}
                   >
-                    <div className="equipment-card-top">
-                      <span className="equipment-type">
-                        {item.type}
-                      </span>
+                    <span className="equipment-group-name">
+                      {group.baseLevel}레벨
+                      {group.tier && ` · ${group.tier.replace("T", "티어")}`}
+                    </span>
+                    <span className="equipment-count">
+                      {group.items.length}
+                    </span>
+                    <span className="equipment-group-toggle">
+                      {collapsedGroups[`${group.baseLevel}-${group.tier || "no-tier"}`]
+                        ? "펼치기 ＋"
+                        : "접기 −"}
+                    </span>
+                  </button>
 
-                      <div className="equipment-actions">
-                        <button
-                          type="button"
-                          className="edit-button"
-                          onClick={() => editEquipment(item)}
-                          aria-label={`${name} 수정`}
+                  {!collapsedGroups[`${group.baseLevel}-${group.tier || "no-tier"}`] && (
+                    <div className="equipment-grid">
+                      {group.items.map((item) => {
+                      const stats = calculateStats(item);
+                      const name = createEquipmentName(
+                        item.type,
+                        item.baseLevel == null ? 50 : Number(item.baseLevel),
+                        item.tier || "5T"
+                      );
+
+                      return (
+                        <article
+                          className="equipment-card"
+                          key={item.id}
                         >
-                          수정
-                        </button>
+                          <div className="equipment-card-top">
+                            <span className="equipment-type">
+                              {item.type}
+                            </span>
 
-                        <button
-                          type="button"
-                          className="delete-button"
-                          onClick={() => deleteEquipment(item.id)}
-                          aria-label={`${name} 삭제`}
-                        >
-                          X
-                        </button>
-                      </div>
+                            <div className="equipment-actions">
+                              <button
+                                type="button"
+                                className="edit-button"
+                                onClick={() => editEquipment(item)}
+                                aria-label={`${name} 수정`}
+                              >
+                                수정
+                              </button>
+
+                              <button
+                                type="button"
+                                className="delete-button"
+                                onClick={() => deleteEquipment(item.id)}
+                                aria-label={`${name} 삭제`}
+                              >
+                                X
+                              </button>
+                            </div>
+                          </div>
+
+                          <h3 className="equipment-name">{name}</h3>
+
+                          <p className="equipment-level">
+                            {item.baseLevel ?? "-"}레벨
+                            {Number(item.baseLevel) !== 0 &&
+                              Number(item.baseLevel) !== 20 && (
+                                <> · {(item.tier || "5T").replace("T", "티어")}</>
+                              )}
+                          </p>
+
+                          <div className="enhancement-level">
+                            +{clampLevel(item.level)}강
+                          </div>
+
+                          <div className="equipment-stat">
+                            <span>{stats.label}</span>
+                            <strong>
+                              +{formatStat(stats.value)}
+                              {stats.unit}
+                            </strong>
+                          </div>
+                        </article>
+                      );
+                      })}
                     </div>
-
-                    <h3 className="equipment-name">{name}</h3>
-
-                    <p className="equipment-level">
-                      {item.baseLevel ?? "-"}레벨
-                      {Number(item.baseLevel) !== 0 &&
-                        Number(item.baseLevel) !== 20 && (
-                          <> · {(item.tier || "5T").replace("T", "티어")}</>
-                        )}
-                    </p>
-
-                    <div className="enhancement-level">
-                      +{clampLevel(item.level)}강
-                    </div>
-
-                    <div className="equipment-stat">
-                      <span>{stats.label}</span>
-                      <strong>
-                        +{formatStat(stats.value)}
-                        {stats.unit}
-                      </strong>
-                    </div>
-                  </article>
-                );
-              })}
+                  )}
+                </section>
+              ))}
             </div>
           )}
         </section>
