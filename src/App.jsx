@@ -193,6 +193,18 @@ export default function App() {
   function addEquipment(event) {
     event.preventDefault();
 
+    // 같은 그룹에는 장비 종류별로 하나만 등록할 수 있습니다.
+    const duplicate = equipment.some((existing) =>
+      existing.id !== editingId &&
+      existing.baseLevel === Number(form.baseLevel) &&
+      (existing.tier || null) === (form.baseLevel === 0 || form.baseLevel === 20 ? null : form.tier) &&
+      existing.type === form.type
+    );
+    if (duplicate) {
+      window.alert(`${form.type}은(는) 이 그룹에 이미 등록되어 있습니다.`);
+      return;
+    }
+
     const level = clampLevel(form.level);
 
     const item = {
@@ -322,11 +334,20 @@ export default function App() {
     });
   }
 
+  const availableEquipmentTypes = selectedGroup
+    ? equipmentTypes.filter((type) => !selectedGroup.items.some((item) => item.type === type))
+    : equipmentTypes;
+
   function startAddingEquipment() {
     if (!selectedGroup) return;
+    if (availableEquipmentTypes.length === 0) {
+      window.alert("이 그룹에는 투구, 갑옷, 허리띠, 신발이 모두 등록되어 있습니다.");
+      return;
+    }
     setEditingId(null);
     setForm({
       ...emptyForm,
+      type: availableEquipmentTypes[0],
       baseLevel: selectedGroup.baseLevel,
       tier: selectedGroup.tier || "5T",
     });
@@ -397,7 +418,7 @@ export default function App() {
                 </button>
                 <h2>{selectedGroup.name} 장비</h2>
               </div>
-              <button type="button" className="add-button add-equipment-button" onClick={startAddingEquipment}>
+              <button type="button" className="add-button add-equipment-button" onClick={startAddingEquipment} disabled={availableEquipmentTypes.length === 0}>
                 ＋ 장비 등록
               </button>
             </div>
@@ -476,8 +497,9 @@ export default function App() {
                   <div className="form-group">
                     <label htmlFor="equipment-type">장비 종류</label>
                     <select id="equipment-type" value={form.type} onChange={(event) => updateForm("type", event.target.value)}>
-                      {equipmentTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                      {(editingId !== null ? equipmentTypes : availableEquipmentTypes).map((type) => <option key={type} value={type}>{type}</option>)}
                     </select>
+                    {editingId === null && <small className="field-help">이미 등록된 장비 종류는 선택 목록에 표시되지 않습니다.</small>}
                   </div>
                   <div className="form-row">
                     <div className="form-group">
