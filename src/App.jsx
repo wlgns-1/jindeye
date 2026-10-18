@@ -5,6 +5,13 @@ import "./App.css";
 const STORAGE_KEY = "jindeye-equipment-v1";
 
 const equipmentTypes = ["투구", "갑옷", "허리띠", "신발"];
+
+const equipmentImageUrls = {
+  "투구": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/leather_helmet.png",
+  "갑옷": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/leather_chestplate.png",
+  "허리띠": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/chainmail_leggings.png",
+  "신발": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/leather_boots.png",
+};
 const equipmentLevels = [0, 20, 50, 80, 110, 150, 180];
 const tiers = ["5T", "4T", "3T", "2T", "1T"];
 
@@ -445,7 +452,10 @@ export default function App() {
                     onClick={() => item && setSelectedEquipmentId(item.id)}
                     disabled={!item}
                   >
-                    <span className="type-tab-name">{type}</span>
+                    <span className="type-tab-topline">
+                      <img className="type-tab-image" src={equipmentImageUrls[type]} alt={`${type} 마인크래프트 아이콘`} loading="lazy" />
+                      <span className="type-tab-name">{item ? `${selectedGroup.name}${type}` : type}</span>
+                    </span>
                     {item ? (
                       <>
                         <strong>+{clampLevel(item.level)}강</strong>
@@ -462,10 +472,14 @@ export default function App() {
             {selectedEquipment ? (
               <div className="selected-equipment-card">
                 <div className="selected-equipment-heading">
-                  <div>
-                    <span className="equipment-type">{selectedEquipment.type}</span>
-                    <h3>{`${selectedGroup.name}${selectedEquipment.type}`}</h3>
-                    <p>{selectedGroup.baseLevel}레벨{selectedGroup.tier ? ` · ${selectedGroup.tier.replace("T", "티어")}` : ""}</p>
+                  <div className="selected-equipment-visual">
+                    <div className="selected-equipment-image-wrap">
+                      <img className="selected-equipment-image" src={equipmentImageUrls[selectedEquipment.type]} alt={`${selectedEquipment.type} 마인크래프트 장비`} />
+                    </div>
+                    <div className="selected-equipment-name">
+                      <h3>{`${selectedGroup.name}${selectedEquipment.type}`}</h3>
+                      <p>{selectedGroup.baseLevel}레벨{selectedGroup.tier ? ` · ${selectedGroup.tier.replace("T", "티어")}` : ""}</p>
+                    </div>
                   </div>
                   <strong className="enhancement-level">+{clampLevel(selectedEquipment.level)}강</strong>
                 </div>
