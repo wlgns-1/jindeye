@@ -77,8 +77,6 @@ function clampLevel(value) {
 }
 
 function createEquipmentName(type, baseLevel, tier) {
-  const name = equipmentNames[baseLevel]?.[tier] ?? "장비";
-
   const suffix = {
     갑옷: "갑옷",
     투구: "투구",
@@ -86,6 +84,16 @@ function createEquipmentName(type, baseLevel, tier) {
     신발: "신",
   }[type] ?? "";
 
+  // 0레벨과 20레벨은 등급이 없으므로 고정 이름을 사용합니다.
+  if (Number(baseLevel) === 0) {
+    return `찬란한가죽${suffix}`;
+  }
+
+  if (Number(baseLevel) === 20) {
+    return `찬란한장인${suffix}`;
+  }
+
+  const name = equipmentNames[baseLevel]?.[tier] ?? "장비";
   return `찬란한${name}${suffix}`;
 }
 
@@ -213,7 +221,7 @@ export default function App() {
 
     setForm({
       type: item.type,
-      baseLevel: Number(item.baseLevel) || 50,
+      baseLevel: item.baseLevel == null ? 50 : Number(item.baseLevel),
       tier: item.tier || "5T",
       level: clampLevel(item.level),
     });
@@ -316,22 +324,25 @@ export default function App() {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="equipment-tier">등급</label>
-                <select
-                  id="equipment-tier"
-                  value={form.tier}
-                  onChange={(event) =>
-                    updateForm("tier", event.target.value)
-                  }
-                >
-                  {tiers.map((tier) => (
-                    <option key={tier} value={tier}>
-                      {tier}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {Number(form.baseLevel) !== 0 &&
+                Number(form.baseLevel) !== 20 && (
+                  <div className="form-group">
+                    <label htmlFor="equipment-tier">등급</label>
+                    <select
+                      id="equipment-tier"
+                      value={form.tier}
+                      onChange={(event) =>
+                        updateForm("tier", event.target.value)
+                      }
+                    >
+                      {tiers.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {tier.replace("T", "티어")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
             </div>
 
             <div className="form-group">
@@ -413,13 +424,11 @@ export default function App() {
               {equipment.map((item) => {
                 const stats = calculateStats(item);
 
-                const name =
-                  item.name ||
-                  createEquipmentName(
-                    item.type,
-                    Number(item.baseLevel) || 50,
-                    item.tier || "5T"
-                  );
+                const name = createEquipmentName(
+                  item.type,
+                  item.baseLevel == null ? 50 : Number(item.baseLevel),
+                  item.tier || "5T"
+                );
 
                 return (
                   <article
@@ -455,7 +464,11 @@ export default function App() {
                     <h3 className="equipment-name">{name}</h3>
 
                     <p className="equipment-level">
-                      {item.baseLevel ?? "-"}레벨 · {item.tier || "-"}
+                      {item.baseLevel ?? "-"}레벨
+                      {Number(item.baseLevel) !== 0 &&
+                        Number(item.baseLevel) !== 20 && (
+                          <> · {(item.tier || "5T").replace("T", "티어")}</>
+                        )}
                     </p>
 
                     <div className="enhancement-level">
