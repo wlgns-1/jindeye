@@ -193,16 +193,26 @@ export default function App() {
   function addEquipment(event) {
     event.preventDefault();
 
+    // 레벨 0/20 그룹은 티어와 관계없이 하나의 그룹으로 취급합니다.
+    const targetBaseLevel = Number(form.baseLevel);
+    const targetTier = targetBaseLevel === 0 || targetBaseLevel === 20
+      ? null
+      : (form.tier || "5T");
+
     // 같은 그룹에는 장비 종류별로 하나만 등록할 수 있습니다.
-    const duplicate = equipment.some((existing) =>
-      existing.id !== editingId &&
-      existing.baseLevel === Number(form.baseLevel) &&
-      (existing.tier || null) === (form.baseLevel === 0 || form.baseLevel === 20 ? null : form.tier) &&
-      existing.type === form.type
-    );
+    const duplicate = equipment.some((existing) => {
+      if (existing.id === editingId) return false;
+      const existingBaseLevel = Number(existing.baseLevel ?? 50);
+      const existingTier = existingBaseLevel === 0 || existingBaseLevel === 20
+        ? null
+        : (existing.tier || "5T");
+      return existingBaseLevel === targetBaseLevel &&
+        existingTier === targetTier &&
+        existing.type === form.type;
+    });
     if (duplicate) {
-      window.alert(`${form.type}은(는) 이 그룹에 이미 등록되어 있습니다.`);
-      return;
+      window.alert(`${form.type}은(는) 이 그룹에 이미 등록되어 있습니다. 기존 장비를 수정하거나 삭제해 주세요.`);
+      return false;
     }
 
     const level = clampLevel(form.level);
@@ -228,6 +238,7 @@ export default function App() {
 
     setForm(emptyForm);
     setEditingId(null);
+    return true;
   }
 
   function editEquipment(item) {
@@ -491,8 +502,8 @@ export default function App() {
                   }}>닫기</button>
                 </div>
                 <form id="equipment-registration-form" onSubmit={(event) => {
-                  addEquipment(event);
-                  setShowRegistrationForm(false);
+                  const saved = addEquipment(event);
+                  if (saved) setShowRegistrationForm(false);
                 }}>
                   <div className="form-group">
                     <label htmlFor="equipment-type">장비 종류</label>
