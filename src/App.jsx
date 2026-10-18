@@ -279,282 +279,286 @@ export default function App() {
     return tierOrder;
   });
 
+  const [selectedGroupKey, setSelectedGroupKey] = useState(null);
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState(null);
+  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+
+  const allGroups = equipmentLevels.flatMap((baseLevel) => {
+    const groupTiers = baseLevel === 0 || baseLevel === 20 ? [null] : tiers;
+    return groupTiers.map((tier) => {
+      const key = tier ? `${baseLevel}-${tier}` : `${baseLevel}`;
+      const name = baseLevel === 0
+        ? "찬란한가죽"
+        : baseLevel === 20
+          ? "찬란한장인"
+          : `찬란한${equipmentNames[baseLevel]?.[tier] ?? "장비"}`;
+      return {
+        key,
+        baseLevel,
+        tier,
+        name,
+        items: sortedGroups.find((group) =>
+          group.baseLevel === baseLevel && (group.tier || null) === tier
+        )?.items ?? [],
+      };
+    });
+  });
+
+  const selectedGroup = allGroups.find((group) => group.key === selectedGroupKey);
+  const selectedEquipment = selectedGroup?.items.find((item) => item.id === selectedEquipmentId)
+    ?? selectedGroup?.items[0]
+    ?? null;
+  const selectedStats = selectedEquipment ? calculateStats(selectedEquipment) : null;
+
+  function openGroup(group) {
+    setSelectedGroupKey(group.key);
+    setSelectedEquipmentId(group.items[0]?.id ?? null);
+    setShowRegistrationForm(false);
+    setEditingId(null);
+    setForm({
+      ...emptyForm,
+      baseLevel: group.baseLevel,
+      tier: group.tier || "5T",
+    });
+  }
+
+  function startAddingEquipment() {
+    if (!selectedGroup) return;
+    setEditingId(null);
+    setForm({
+      ...emptyForm,
+      baseLevel: selectedGroup.baseLevel,
+      tier: selectedGroup.tier || "5T",
+    });
+    setShowRegistrationForm(true);
+  }
+
+  function startEditingEquipment(item) {
+    editEquipment(item);
+    setShowRegistrationForm(true);
+  }
+
   return (
     <main className="app">
       <header className="topbar">
-        <div className="brand">진열대</div>
-        <span className="topbar-badge">개인 진열대 미리보기</span>
+        <button
+          type="button"
+          className="brand brand-button"
+          onClick={() => {
+            setSelectedGroupKey(null);
+            setSelectedEquipmentId(null);
+            setShowRegistrationForm(false);
+          }}
+        >
+          진열대
+        </button>
+        <span className="topbar-badge">장비 도감</span>
       </header>
 
-      <div className="workspace">
-        <section
-          className="panel form-panel"
-          id="equipment-form"
-        >
+      {!selectedGroup ? (
+        <section className="panel group-select-panel">
           <div className="panel-heading">
-            <h2>
-              {editingId !== null
-                ? "장비 수정하기"
-                : "장비 등록하기"}
-            </h2>
-
-            <button
-              type="submit"
-              form="equipment-registration-form"
-              className="add-button"
-              aria-label={
-                editingId !== null ? "장비 수정 완료" : "장비 등록"
-              }
-            >
-              {editingId !== null ? "✓" : "＋"}
-            </button>
+            <h2>진열대 선택</h2>
+            <span className="equipment-count">{allGroups.length}</span>
           </div>
-
-          <form
-            id="equipment-registration-form"
-            onSubmit={addEquipment}
-          >
-            <div className="form-group">
-              <label htmlFor="equipment-type">장비 종류</label>
-              <select
-                id="equipment-type"
-                value={form.type}
-                onChange={(event) =>
-                  updateForm("type", event.target.value)
-                }
-              >
-                {equipmentTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="equipment-base-level">장비 레벨</label>
-                <select
-                  id="equipment-base-level"
-                  value={form.baseLevel}
-                  onChange={(event) =>
-                    updateForm(
-                      "baseLevel",
-                      Number(event.target.value)
-                    )
-                  }
-                >
-                  {equipmentLevels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}레벨
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {Number(form.baseLevel) !== 0 &&
-                Number(form.baseLevel) !== 20 && (
-                  <div className="form-group">
-                    <label htmlFor="equipment-tier">등급</label>
-                    <select
-                      id="equipment-tier"
-                      value={form.tier}
-                      onChange={(event) =>
-                        updateForm("tier", event.target.value)
-                      }
-                    >
-                      {tiers.map((tier) => (
-                        <option key={tier} value={tier}>
-                          {tier.replace("T", "티어")}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-            </div>
-
-            <div className="form-group">
-              <label>장비 이름</label>
-              <div className="name-preview">{equipmentName}</div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="equipment-enhancement">
-                강화 단계 (+)
-              </label>
-
-              <input
-                id="equipment-enhancement"
-                type="number"
-                min="0"
-                max="20"
-                step="1"
-                value={form.level}
-                onChange={(event) => {
-                  const value = event.target.value;
-
-                  if (value === "") {
-                    updateForm("level", "");
-                    return;
-                  }
-
-                  updateForm("level", clampLevel(value));
-                }}
-                onBlur={() => {
-                  updateForm("level", clampLevel(form.level));
-                }}
-                required
-              />
-
-              <small className="help-text">
-                0강부터 20강까지 등록할 수 있습니다.
-              </small>
-            </div>
-
-            <div className="preview-box">
-              <span className="preview-label">강화 능력치</span>
-              <strong>
-                {previewStats.label}{" "}
-                +{formatStat(previewStats.value)}
-                {previewStats.unit}
-              </strong>
-            </div>
-
-            {editingId !== null && (
+          <p className="screen-description">확인할 장비 그룹을 선택하세요.</p>
+          <div className="group-select-grid">
+            {allGroups.map((group) => (
               <button
                 type="button"
-                className="cancel-button"
-                onClick={cancelEdit}
+                className="group-select-card"
+                key={group.key}
+                onClick={() => openGroup(group)}
               >
-                수정 취소
+                <span className="group-select-name">{group.name} 장비</span>
+                <span className="group-select-meta">
+                  {group.baseLevel}레벨{group.tier ? ` · ${group.tier.replace("T", "티어")}` : ""}
+                </span>
+                <span className="group-select-action">선택 →</span>
               </button>
-            )}
-          </form>
-        </section>
-
-        <section className="panel display-panel">
-          <div className="panel-heading">
-            <h2>
-              나의 진열대{" "}
-              <span className="equipment-count">
-                {equipment.length}
-              </span>
-            </h2>
+            ))}
           </div>
-
-          {equipment.length === 0 ? (
-            <div className="empty-state">
-              <p>아직 등록된 장비가 없습니다.</p>
-              <span>왼쪽에서 장비를 등록해 보세요.</span>
-            </div>
-          ) : (
-            <div className="equipment-groups">
-              {sortedGroups.map((group) => (
-                <section
-                  className="equipment-group"
-                  key={`${group.baseLevel}-${group.tier || "no-tier"}`}
+        </section>
+      ) : (
+        <div className="detail-layout">
+          <section className="panel detail-main-panel">
+            <div className="panel-heading">
+              <div>
+                <button
+                  type="button"
+                  className="back-button"
+                  onClick={() => {
+                    setSelectedGroupKey(null);
+                    setSelectedEquipmentId(null);
+                    setShowRegistrationForm(false);
+                  }}
                 >
+                  ← 진열대 선택
+                </button>
+                <h2>{selectedGroup.name} 장비</h2>
+              </div>
+              <button type="button" className="add-button add-equipment-button" onClick={startAddingEquipment}>
+                ＋ 장비 등록
+              </button>
+            </div>
+
+            <div className="equipment-type-tabs">
+              {equipmentTypes.map((type) => {
+                const item = selectedGroup.items.find((entry) => entry.type === type);
+                return (
                   <button
                     type="button"
-                    className="equipment-group-title"
-                    aria-expanded={
-                      !collapsedGroups[`${group.baseLevel}-${group.tier || "no-tier"}`]
-                    }
-                    onClick={() => {
-                      const key = `${group.baseLevel}-${group.tier || "no-tier"}`;
-                      setCollapsedGroups((current) => ({
-                        ...current,
-                        [key]: !current[key],
-                      }));
-                    }}
+                    key={type}
+                    className={`equipment-type-tab ${selectedEquipment?.id === item?.id && item ? "active" : ""}`}
+                    onClick={() => item && setSelectedEquipmentId(item.id)}
+                    disabled={!item}
                   >
-                    <span className="equipment-group-name">
-                      {group.baseLevel}레벨
-                      {group.tier && ` · ${group.tier.replace("T", "티어")}`}
-                    </span>
-                    <span className="equipment-count">
-                      {group.items.length}
-                    </span>
-                    <span className="equipment-group-toggle">
-                      {collapsedGroups[`${group.baseLevel}-${group.tier || "no-tier"}`]
-                        ? "펼치기 ＋"
-                        : "접기 −"}
-                    </span>
+                    <span className="type-tab-name">{type}</span>
+                    {item ? (
+                      <>
+                        <strong>+{clampLevel(item.level)}강</strong>
+                        <small>{calculateStats(item).label} +{formatStat(calculateStats(item).value)}{calculateStats(item).unit}</small>
+                      </>
+                    ) : (
+                      <small>미등록</small>
+                    )}
                   </button>
-
-                  {!collapsedGroups[`${group.baseLevel}-${group.tier || "no-tier"}`] && (
-                    <div className="equipment-grid">
-                      {group.items.map((item) => {
-                      const stats = calculateStats(item);
-                      const name = createEquipmentName(
-                        item.type,
-                        item.baseLevel == null ? 50 : Number(item.baseLevel),
-                        item.tier || "5T"
-                      );
-
-                      return (
-                        <article
-                          className="equipment-card"
-                          key={item.id}
-                        >
-                          <div className="equipment-card-top">
-                            <span className="equipment-type">
-                              {item.type}
-                            </span>
-
-                            <div className="equipment-actions">
-                              <button
-                                type="button"
-                                className="edit-button"
-                                onClick={() => editEquipment(item)}
-                                aria-label={`${name} 수정`}
-                              >
-                                수정
-                              </button>
-
-                              <button
-                                type="button"
-                                className="delete-button"
-                                onClick={() => deleteEquipment(item.id)}
-                                aria-label={`${name} 삭제`}
-                              >
-                                X
-                              </button>
-                            </div>
-                          </div>
-
-                          <h3 className="equipment-name">{name}</h3>
-
-                          <p className="equipment-level">
-                            {item.baseLevel ?? "-"}레벨
-                            {Number(item.baseLevel) !== 0 &&
-                              Number(item.baseLevel) !== 20 && (
-                                <> · {(item.tier || "5T").replace("T", "티어")}</>
-                              )}
-                          </p>
-
-                          <div className="enhancement-level">
-                            +{clampLevel(item.level)}강
-                          </div>
-
-                          <div className="equipment-stat">
-                            <span>{stats.label}</span>
-                            <strong>
-                              +{formatStat(stats.value)}
-                              {stats.unit}
-                            </strong>
-                          </div>
-                        </article>
-                      );
-                      })}
-                    </div>
-                  )}
-                </section>
-              ))}
+                );
+              })}
             </div>
-          )}
-        </section>
-      </div>
+
+            {selectedEquipment ? (
+              <div className="selected-equipment-card">
+                <div className="selected-equipment-heading">
+                  <div>
+                    <span className="equipment-type">{selectedEquipment.type}</span>
+                    <h3>{createEquipmentName(selectedEquipment.type, selectedEquipment.baseLevel ?? 50, selectedEquipment.tier || "5T")}</h3>
+                    <p>{selectedGroup.baseLevel}레벨{selectedGroup.tier ? ` · ${selectedGroup.tier.replace("T", "티어")}` : ""}</p>
+                  </div>
+                  <strong className="enhancement-level">+{clampLevel(selectedEquipment.level)}강</strong>
+                </div>
+                <div className="effect-box">
+                  <h3>개별 장비 효과</h3>
+                  <p>{selectedStats.label} <strong>+{formatStat(selectedStats.value)}{selectedStats.unit}</strong></p>
+                </div>
+                <div className="effect-box set-effect-box">
+                  <h3>세트 효과</h3>
+                  <p>세트 효과 계산 규칙을 설정하면 이곳에 표시됩니다.</p>
+                </div>
+                <div className="equipment-actions detail-actions">
+                  <button type="button" className="edit-button" onClick={() => startEditingEquipment(selectedEquipment)}>수정</button>
+                  <button type="button" className="delete-button" onClick={() => {
+                    deleteEquipment(selectedEquipment.id);
+                    setSelectedEquipmentId(null);
+                  }}>삭제</button>
+                </div>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p>이 그룹에 등록된 장비가 없습니다.</p>
+                <span>장비 등록 버튼을 눌러 추가해 보세요.</span>
+              </div>
+            )}
+
+            {showRegistrationForm && (
+              <section className="panel form-panel registration-panel" id="equipment-form">
+                <div className="panel-heading">
+                  <h2>{editingId !== null ? "장비 수정하기" : "장비 등록하기"}</h2>
+                  <button type="button" className="cancel-button" onClick={() => {
+                    cancelEdit();
+                    setShowRegistrationForm(false);
+                  }}>닫기</button>
+                </div>
+                <form id="equipment-registration-form" onSubmit={(event) => {
+                  addEquipment(event);
+                  setShowRegistrationForm(false);
+                }}>
+                  <div className="form-group">
+                    <label htmlFor="equipment-type">장비 종류</label>
+                    <select id="equipment-type" value={form.type} onChange={(event) => updateForm("type", event.target.value)}>
+                      {equipmentTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="equipment-base-level">장비 레벨</label>
+                      <select id="equipment-base-level" value={form.baseLevel} onChange={(event) => {
+                        const value = Number(event.target.value);
+                        updateForm("baseLevel", value);
+                        if (value === 0 || value === 20) updateForm("tier", "5T");
+                      }}>
+                        {equipmentLevels.map((level) => <option key={level} value={level}>{level}레벨</option>)}
+                      </select>
+                    </div>
+                    {Number(form.baseLevel) !== 0 && Number(form.baseLevel) !== 20 && (
+                      <div className="form-group">
+                        <label htmlFor="equipment-tier">등급</label>
+                        <select id="equipment-tier" value={form.tier} onChange={(event) => updateForm("tier", event.target.value)}>
+                          {tiers.map((tier) => <option key={tier} value={tier}>{tier.replace("T", "티어")}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label>장비 이름</label>
+                    <div className="name-preview">{equipmentName}</div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="equipment-enhancement">강화 단계 (+)</label>
+                    <input
+                      id="equipment-enhancement"
+                      type="number"
+                      min="0"
+                      max="20"
+                      step="1"
+                      value={form.level}
+                      onChange={(event) => updateForm("level", event.target.value === "" ? "" : clampLevel(event.target.value))}
+                      onBlur={() => updateForm("level", clampLevel(form.level))}
+                      required
+                    />
+                    <small className="help-text">0강부터 20강까지 등록할 수 있습니다.</small>
+                  </div>
+                  <div className="preview-box">
+                    <span className="preview-label">강화 능력치 미리보기</span>
+                    <strong>{previewStats.label} +{formatStat(previewStats.value)}{previewStats.unit}</strong>
+                  </div>
+                  <button type="submit" className="add-button form-submit-button">
+                    {editingId !== null ? "수정 완료" : "장비 등록"}
+                  </button>
+                </form>
+              </section>
+            )}
+          </section>
+
+          <aside className="panel side-summary-panel">
+            <div className="panel-heading"><h2>장비 효과</h2></div>
+            {selectedGroup.items.length === 0 ? (
+              <p className="empty-effect-text">등록된 장비가 없습니다.</p>
+            ) : (
+              <div className="side-effect-list">
+                {selectedGroup.items.map((item) => {
+                  const stats = calculateStats(item);
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={`side-effect-item ${selectedEquipment?.id === item.id ? "active" : ""}`}
+                      onClick={() => setSelectedEquipmentId(item.id)}
+                    >
+                      <span className="side-effect-title">{item.type} +{clampLevel(item.level)}</span>
+                      <strong>{stats.label} +{formatStat(stats.value)}{stats.unit}</strong>
+                    </button>
+                  );
+                })}
+                <div className="side-set-effect">
+                  <h3>{selectedGroup.name} 세트 효과</h3>
+                  <p>세트 효과 규칙 설정 후 표시됩니다.</p>
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
     </main>
   );
 }
