@@ -336,10 +336,10 @@ export default function App() {
                       }
                     >
                       {tiers.map((tier) => (
-                        <option key={tier} value={tier}>
-                          {tier.replace("T", "티어")}
-                        </option>
-                      ))}
+  <option key={tier} value={tier}>
+    {tier.replace("T", "티어")}
+  </option>
+))}
                     </select>
                   </div>
                 )}
