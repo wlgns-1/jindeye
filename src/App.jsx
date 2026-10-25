@@ -10,7 +10,7 @@ function getEquipmentImageUrl(type, tier) {
   const tierNumber = String(tier || "5T").replace("T", "");
   const folders = { "투구": "helmets", "갑옷": "armor", "허리띠": "belts", "신발": "boots" };
   const fileNames = { "투구": `helmet_tier${tierNumber}.png`, "갑옷": `armor_tier${tierNumber}.png`, "허리띠": `belts_tier${tierNumber}.png`, "신발": `boots_tier${tierNumber}.png` };
-  return `/images/${folders[type] || "helmets"}/${fileNames[type] || fileNames["투구"]}`;
+  return `${import.meta.env.BASE_URL}images/${folders[type] || "helmets"}/${fileNames[type] || fileNames["투구"]}`;
 }
 const equipmentLevels = [0, 20, 50, 80, 110, 150, 180];
 const tiers = ["5T", "4T", "3T", "2T", "1T"];
