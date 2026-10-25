@@ -6,12 +6,12 @@ const STORAGE_KEY = "jindeye-equipment-v1";
 
 const equipmentTypes = ["투구", "갑옷", "허리띠", "신발"];
 
-const equipmentImageUrls = {
-  "투구": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/leather_helmet.png",
-  "갑옷": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/leather_chestplate.png",
-  "허리띠": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/chainmail_leggings.png",
-  "신발": "https://mcasset.cloud/1.21.4/assets/minecraft/textures/item/leather_boots.png",
-};
+function getEquipmentImageUrl(type, tier) {
+  const tierNumber = String(tier || "5T").replace("T", "");
+  const folders = { "투구": "helmets", "갑옷": "armor", "허리띠": "belts", "신발": "boots" };
+  const fileNames = { "투구": `helmet_tier${tierNumber}.png`, "갑옷": `armor_tier${tierNumber}.png`, "허리띠": `belts_tier${tierNumber}.png`, "신발": `boots_tier${tierNumber}.png` };
+  return `/images/${folders[type] || "helmets"}/${fileNames[type] || fileNames["투구"]}`;
+}
 const equipmentLevels = [0, 20, 50, 80, 110, 150, 180];
 const tiers = ["5T", "4T", "3T", "2T", "1T"];
 
@@ -453,7 +453,7 @@ export default function App() {
                     disabled={!item}
                   >
                     <span className="type-tab-topline">
-                      <img className="type-tab-image" src={equipmentImageUrls[type]} alt={`${type} 마인크래프트 아이콘`} loading="lazy" />
+                      <img className="type-tab-image" src={getEquipmentImageUrl(type, selectedGroup.tier)} alt={`${type} 마인크래프트 아이콘`} loading="lazy" />
                       <span className="type-tab-name">{item ? `${selectedGroup.name}${type}` : type}</span>
                     </span>
                     {item ? (
@@ -474,7 +474,7 @@ export default function App() {
                 <div className="selected-equipment-heading">
                   <div className="selected-equipment-visual">
                     <div className="selected-equipment-image-wrap">
-                      <img className="selected-equipment-image" src={equipmentImageUrls[selectedEquipment.type]} alt={`${selectedEquipment.type} 마인크래프트 장비`} />
+                      <img className="selected-equipment-image" src={getEquipmentImageUrl(selectedEquipment.type, selectedGroup.tier)} alt={`${selectedEquipment.type} 마인크래프트 장비`} />
                     </div>
                     <div className="selected-equipment-name">
                       <h3>{`${selectedGroup.name}${selectedEquipment.type}`}</h3>
